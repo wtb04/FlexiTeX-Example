@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: >
+    If you use this example, please cite it using the metadata from this file.
+title: FlexiTex Example
+version: "1.0.0"
+date-released: 2025-06-04
+license: MIT
+repository-code: "https://github.com/wtb04/FlexiTeX-Example"
+abstract: >
+    FlexiTeX-Example demonstrates collaborative workflows for LaTeX projects using FlexiTeX, a command-line tool for restructuring large LaTeX documents.
+    This example showcases how three users can collaborate through individual branches, each with personalized formatting styles.
+authors:
+    - given-names: Wouter
+      family-names: ten Brinke
+      email: w.d.c.tenbrinke@student.utwente.nl

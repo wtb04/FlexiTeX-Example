@@ -1,0 +1,194 @@
+name: FlexiTeX Sync
+
+on:
+    push:
+        branches:
+            - "**"
+
+jobs:
+    detect-branch:
+        runs-on: ubuntu-latest
+        outputs:
+            is_internal: ${{ steps.check.outputs.is_internal }}
+            branch_name: ${{ steps.branch.outputs.name }}
+        steps:
+            - name: Get current branch name
+              id: branch
+              run: echo "name=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
+
+            - name: Is this the internal branch?
+              id: check
+              run: |
+                  if [[ "${GITHUB_REF#refs/heads/}" == "internal" ]]; then
+                    echo "is_internal=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "is_internal=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+    format-to-internal:
+        needs: detect-branch
+        if: needs.detect-branch.outputs.is_internal == 'false'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Clone branches into separate directory
+              run: |
+                  git clone --depth=1 --branch="${{ github.ref_name }}" https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git collab-tmp
+                  git clone --depth=1 --branch=internal https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git internal-tmp
+                  cd internal-tmp
+                  git config user.name "FlexiTeX Bot"
+                  git config user.email "flexitex-bot@users.noreply.github.com"
+
+            - name: Get last commit message
+              id: commit
+              run: |
+                  cd collab-tmp 
+                  echo "msg=$(git log -1 --pretty=format:'%s')" >> "$GITHUB_OUTPUT"
+
+            - name: Skip if already formatted
+              if: contains(steps.commit.outputs.msg, '-> internal')
+              run: |
+                  echo "Already formatted. Skipping."
+                  exit 0
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.10"
+
+            - name: Install dependencies
+              run: |
+                  pip install pyyaml
+                  pip install git+https://github.com/wtb04/FlexiTeX.git
+
+            - name: Merge configs and prepare FlexiTeX
+              run: |
+
+                  cp internal-tmp/config.yml collab-tmp/config-internal.yml
+                  cd collab-tmp
+
+                  python3 -c "
+                  import yaml
+                  with open('config-internal.yml') as f:
+                      base = yaml.safe_load(f)
+                  with open('config.yml') as f:
+                      local = yaml.safe_load(f)
+                  base['input'] = {
+                      'folder': local.get('output', {}).get('folder'),
+                      'main_file': local.get('output', {}).get('main_file')
+                  }
+                  base['output']['folder'] = '../internal-tmp/internal'
+                  with open('config-used.yml', 'w') as f:
+                      yaml.dump(base, f)
+                  "
+            - name: Run FlexiTeX
+              run: |
+                  cd collab-tmp
+                  flexitex -c config-used.yml --debug
+
+            - name: Commit and push to internal branch
+              run: |
+                  cd internal-tmp
+                  git add .
+                  git commit -m "[FlexiTeX] ${{ needs.detect-branch.outputs.branch_name }} -> internal" || echo "No changes to commit"
+                  git push origin internal --force
+
+    format-from-internal:
+        needs: detect-branch
+        if: needs.detect-branch.outputs.is_internal == 'true'
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.branches.outputs.matrix }}
+        steps:
+            - name: Checkout internal
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.10"
+
+            - name: Install dependencies
+              run: |
+                  pip install pyyaml
+                  pip install git+https://github.com/wtb04/FlexiTeX.git
+
+            - name: List all collaborator branches
+              id: branches
+              run: |
+                  branches=$(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||' | grep -v '^internal$')
+                  json=$(echo "$branches" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+                  echo "matrix=$json" >> $GITHUB_OUTPUT
+
+    fanout:
+        needs: [detect-branch, format-from-internal]
+        if: needs.detect-branch.outputs.is_internal == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                branch: ${{ fromJson(needs.format-from-internal.outputs.matrix) }}
+        steps:
+            - name: Clone branches into separate directory
+              run: |
+                  git clone --depth=1 --branch="${{ matrix.branch }}" https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git collab-tmp
+                  git clone --depth=1 --branch=internal https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git internal-tmp
+                  cd collab-tmp
+                  git config user.name "FlexiTeX Bot"
+                  git config user.email "flexitex-bot@users.noreply.github.com"
+
+            - name: Get last commit message
+              id: commit
+              run: |
+                  cd internal-tmp 
+                  echo "msg=$(git log -1 --pretty=format:'%s')" >> "$GITHUB_OUTPUT"
+
+            - name: Skip if already formatted
+              if: contains(steps.commit.outputs.msg, '-> collab')
+              run: |
+                  echo "Already formatted. Skipping."
+                  exit 0
+
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                  python-version: "3.10"
+
+            - name: Install dependencies
+              run: |
+                  pip install pyyaml
+                  pip install git+https://github.com/wtb04/FlexiTeX.git
+
+            - name: Merge configs and prepare FlexiTeX
+              run: |
+                  cp collab-tmp/config.yml internal-tmp/config-collab.yml
+
+                  cd internal-tmp
+
+                  python3 -c "
+                  import yaml
+                  import os
+                  with open('config-collab.yml') as f:
+                      base = yaml.safe_load(f)
+                  with open('config.yml') as f:
+                      local = yaml.safe_load(f)
+                  base['input'] = {
+                      'folder': local.get('output', {}).get('folder'),
+                      'main_file': local.get('output', {}).get('main_file')
+                  }
+                  base['output']['folder'] = os.path.join('../collab-tmp', base['output']['folder'])
+                  with open('config-used.yml', 'w') as f:
+                      yaml.dump(base, f)
+                  "
+                  cat config-used.yml
+            - name: Run FlexiTeX
+              run: |
+                  cd internal-tmp
+                  flexitex -c config-used.yml --debug
+
+            - name: Commit and push to internal branch
+              run: |
+                  cd collab-tmp
+                  git add .
+                  git commit -m "[FlexiTeX] internal -> collab" || echo "No changes to commit"
+                  git push --force

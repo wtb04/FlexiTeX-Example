@@ -1,0 +1,4 @@
+output:
+    folder: ../internal-tmp/internal
+    main_file: "main.tex"
+    figure_folder: "figs"

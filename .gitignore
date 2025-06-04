@@ -1,0 +1,15 @@
+**/**.DS_Store
+**/**.log
+**/**.out
+**/**.toc
+**/**.aux
+**/**.synctex**
+.vscode/**
+**/**.fls
+**/**.fdb_latexmk
+**/**.bbl
+**/**.bcf
+**/**.blg
+**/**.gz
+**/**.pdf
+**/**.run.xml

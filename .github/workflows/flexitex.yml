@@ -32,8 +32,8 @@ jobs:
         steps:
             - name: Clone branches into separate directory
               run: |
-                  git clone --depth=1 --branch="${{ github.ref_name }}" https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git collab-tmp
-                  git clone --depth=1 --branch=internal https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git internal-tmp
+                  git clone --depth=1 --branch="${{ github.ref_name }}" https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Example.git collab-tmp
+                  git clone --depth=1 --branch=internal https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Example.git internal-tmp
                   cd internal-tmp
                   git config user.name "FlexiTeX Bot"
                   git config user.email "flexitex-bot@users.noreply.github.com"
@@ -131,8 +131,8 @@ jobs:
         steps:
             - name: Clone branches into separate directory
               run: |
-                  git clone --depth=1 --branch="${{ matrix.branch }}" https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git collab-tmp
-                  git clone --depth=1 --branch=internal https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Collaboration.git internal-tmp
+                  git clone --depth=1 --branch="${{ matrix.branch }}" https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Example.git collab-tmp
+                  git clone --depth=1 --branch=internal https://x-access-token:${{ secrets.FLEXITEX_PAT }}@github.com/wtb04/FlexiTeX-Example.git internal-tmp
                   cd collab-tmp
                   git config user.name "FlexiTeX Bot"
                   git config user.email "flexitex-bot@users.noreply.github.com"

@@ -1,4 +1,9 @@
+structure:
+    - name: "chapter"
+      type: "macro"
+      file_name: "chapters/ch[chapter]-[name:chapter].tex"
+
 output:
-    folder: ../internal-tmp/internal
+    folder: "latex"
     main_file: "main.tex"
     figure_folder: "figs"

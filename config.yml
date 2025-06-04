@@ -1,4 +1,4 @@
 output:
-    folder: ../internal-tmp/internal
-    main_file: "main.tex"
+    folder: "latex"
+    main_file: "article.tex"
     figure_folder: "figs"
